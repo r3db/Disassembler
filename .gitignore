@@ -1,0 +1,6 @@
+Desktop.ini
+*.user
+src/.vs/
+src/**/obj/
+src/**/bin/
+src/packages/
