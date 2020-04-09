@@ -5,15 +5,15 @@ namespace Disassembler
 {
     internal static class CliMetadataTokenMethodImplReader
     {
-        internal static IList<CliMetadataTokenBase> Read(ImageReader reader, uint count, uint indexSize)
+        internal static IList<CliMetadataTokenBase> Read(MetadataStreamReader reader, uint count, uint indexSize)
         {
             var result = new List<CliMetadataTokenBase>();
 
             for (int i = 0; i < count; i++)
             {
-                var @class            = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
-                var methodBody        = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
-                var methodDeclaration = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
+                var @class            = reader.ReadMetadataTableIndex(indexSize);
+                var methodBody        = reader.ReadMetadataTableIndex(indexSize);
+                var methodDeclaration = reader.ReadMetadataTableIndex(indexSize);
 
                 result.Add(new CliMetadataTokenMethodImpl
                 {

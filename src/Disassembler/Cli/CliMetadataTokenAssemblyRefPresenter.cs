@@ -18,6 +18,8 @@ namespace Disassembler
                 x.Add(nameof(CliMetadataTokenAssemblyRef.Name),             indexSize == 2 ? "{0:x4}" : "{0:x8}",  8);
                 x.Add(nameof(CliMetadataTokenAssemblyRef.Culture),          indexSize == 2 ? "{0:x4}" : "{0:x8}",  8);
                 x.Add(nameof(CliMetadataTokenAssemblyRef.HashValue),        indexSize == 2 ? "{0:x4}" : "{0:x8}",  9);
+
+                x.Add(nameof(CliMetadataTokenAssemblyRef.NameResolved),     "'{0}'", 30);
             });
         }
     }

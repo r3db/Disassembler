@@ -5,6 +5,7 @@ namespace Disassembler
 {
     internal static class CliMetadataTokenFilePresenter
     {
+        // Todo: Present 'NameResolved'
         internal static void Present(CliMetadataToken token, IEnumerable<CliMetadataTokenFile> tokens, uint indexSize)
         {
             Shell.Table($"Metadata Token [{token}]", tokens, 8, x =>

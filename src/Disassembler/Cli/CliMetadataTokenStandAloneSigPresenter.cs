@@ -9,7 +9,7 @@ namespace Disassembler
         {
             Shell.Table($"Metadata Token [{token}]", tokens, 8, x =>
             {
-                x.Add(nameof(CliMetadataTokenStandAloneSig.Signature), indexSize == 2 ? "{0:x4}" : "{0:x8}", 87);
+                x.Add(nameof(CliMetadataTokenStandAloneSig.Signature), indexSize == 2 ? "{0:x4}" : "{0:x8}", 157);
             });
         }
     }

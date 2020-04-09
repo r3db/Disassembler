@@ -14,5 +14,7 @@ namespace Disassembler
         internal uint   Mvid;
         internal uint   EncId;
         internal uint   EncBaseId;
+        internal string NameResolved;
+        internal Guid   MvidResolved;
     }
 }

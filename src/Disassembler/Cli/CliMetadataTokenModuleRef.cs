@@ -9,6 +9,8 @@ namespace Disassembler
         {
         }
 
-        internal uint Name;
+        internal uint   Name;
+        
+        internal string NameResolved;
     }
 }

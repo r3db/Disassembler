@@ -13,5 +13,7 @@ namespace Disassembler
         internal CliMetadataGenericParamAttribute Flags;
         internal uint                             Owner;
         internal uint                             Name;
+        
+        internal string                           NameResolved;
     }
 }

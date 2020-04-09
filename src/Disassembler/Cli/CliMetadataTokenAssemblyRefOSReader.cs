@@ -5,7 +5,7 @@ namespace Disassembler
 {
     internal static class CliMetadataTokenAssemblyRefOSReader
     {
-        internal static IList<CliMetadataTokenBase> Read(ImageReader reader, uint count, uint indexSize)
+        internal static IList<CliMetadataTokenBase> Read(MetadataStreamReader reader, uint count, uint indexSize)
         {
             var result = new List<CliMetadataTokenBase>();
 
@@ -14,7 +14,7 @@ namespace Disassembler
                 var osPlatformId   = reader.ReadUInt32();
                 var osMajorVersion = reader.ReadUInt32();
                 var osMinorVersion = reader.ReadUInt32();
-                var assemblyRef    = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
+                var assemblyRef    = reader.ReadMetadataTableIndex(indexSize);
 
                 result.Add(new CliMetadataTokenAssemblyRefOS
                 {

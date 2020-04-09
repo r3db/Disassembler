@@ -9,10 +9,12 @@ namespace Disassembler
         {
             Shell.Table($"Metadata Token [{token}]", tokens, 8, x =>
             {
-                x.Add(nameof(CliMetadataTokenGenericParam.Number), indexSize == 2 ? "{0:x4}" : "{0:x4}", 8);
-                x.Add(nameof(CliMetadataTokenGenericParam.Flags),  indexSize == 2 ? "{0:x4}" : "{0:x4}", 8);
-                x.Add(nameof(CliMetadataTokenGenericParam.Owner),  indexSize == 2 ? "{0:x4}" : "{0:x8}", 8);
-                x.Add(nameof(CliMetadataTokenGenericParam.Name),   indexSize == 2 ? "{0:x4}" : "{0:x8}", 54);
+                x.Add(nameof(CliMetadataTokenGenericParam.Number),       indexSize == 2 ? "{0:x4}" : "{0:x4}", 8);
+                x.Add(nameof(CliMetadataTokenGenericParam.Flags),        indexSize == 2 ? "{0:x4}" : "{0:x4}", 8);
+                x.Add(nameof(CliMetadataTokenGenericParam.Owner),        indexSize == 2 ? "{0:x4}" : "{0:x8}", 8);
+                x.Add(nameof(CliMetadataTokenGenericParam.Name),         indexSize == 2 ? "{0:x4}" : "{0:x8}", 8);
+
+                x.Add(nameof(CliMetadataTokenGenericParam.NameResolved), "'{0}'", 111);
             });
         }
     }

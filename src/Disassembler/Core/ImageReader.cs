@@ -16,16 +16,6 @@ namespace Disassembler
             _reader = new BinaryReader(stream);
         }
 
-        internal long Offset
-        {
-            get
-            {
-                return _reader.BaseStream.Position;
-            }
-        }
-
-        public uint Position { get { return (uint)_reader.BaseStream.Position; } }
-
         internal void AddSections(IList<CoffSectionHeader> sections)
         {
             _sections.Clear();
@@ -107,7 +97,8 @@ namespace Disassembler
 
             return result.ToString();
         }
-
+        
+        // Interface Implementations
         public void Dispose()
         {
             _reader.Dispose();

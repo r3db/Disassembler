@@ -18,5 +18,7 @@ namespace Disassembler
         internal uint                 Name;
         internal uint                 Culture;
         internal uint                 HashValue;
+
+        internal string               NameResolved;
     }
 }

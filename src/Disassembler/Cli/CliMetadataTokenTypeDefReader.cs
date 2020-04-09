@@ -5,27 +5,33 @@ namespace Disassembler
 {
     internal static class CliMetadataTokenTypeDefReader
     {
-        internal static IList<CliMetadataTokenBase> Read(ImageReader reader, uint count, uint indexSize)
+        internal static IList<CliMetadataTokenBase> Read(MetadataStreamReader reader, uint count, uint indexSize)
         {
             var result = new List<CliMetadataTokenBase>();
 
             for (int i = 0; i < count; i++)
             {
-                var flags           = reader.ReadUInt32();
-                var typeName        = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
-                var typeNamespace   = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
-                var extends         = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
-                var fieldList       = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
-                var methodList      = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
+                var flags                 = reader.ReadUInt32();
+                var typeName              = reader.ReadMetadataTableIndex(indexSize);
+                var typeNamespace         = reader.ReadMetadataTableIndex(indexSize);
+                var extends               = reader.ReadMetadataTableIndex(indexSize);
+                var fieldList             = reader.ReadMetadataTableIndex(indexSize);
+                var methodList            = reader.ReadMetadataTableIndex(indexSize);
+
+                var typeNameResolved      = reader.ReadStreamStringEntry(typeName);
+                var typeNamespaceResolved = reader.ReadStreamStringEntry(typeNamespace);
 
                 result.Add(new CliMetadataTokenTypeDef
                 {
-                    Flags         = flags,
-                    TypeName      = typeName,
-                    TypeNamespace = typeNamespace,
-                    Extends       = extends,
-                    FieldList     = fieldList,
-                    MethodList    = methodList,
+                    Flags                 = flags,
+                    TypeName              = typeName,
+                    TypeNamespace         = typeNamespace,
+                    Extends               = extends,
+                    FieldList             = fieldList,
+                    MethodList            = methodList,
+
+                    TypeNameResolved      = typeNameResolved,
+                    TypeNamespaceResolved = typeNamespaceResolved,
                 });
             }
 

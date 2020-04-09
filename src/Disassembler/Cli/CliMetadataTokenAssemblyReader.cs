@@ -6,7 +6,7 @@ namespace Disassembler
 {
     internal static class CliMetadataTokenAssemblyReader
     {
-        internal static IList<CliMetadataTokenBase> Read(ImageReader reader, uint count, uint indexSize)
+        internal static IList<CliMetadataTokenBase> Read(MetadataStreamReader reader, uint count, uint indexSize)
         {
             var result = new List<CliMetadataTokenBase>();
 
@@ -18,9 +18,11 @@ namespace Disassembler
                 var buildNumber    = reader.ReadUInt16();
                 var revisionNumber = reader.ReadUInt16();
                 var flags          = reader.ReadUInt32();
-                var publickKey     = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
-                var name           = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
-                var culture        = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
+                var publickKey     = reader.ReadMetadataTableIndex(indexSize);
+                var name           = reader.ReadMetadataTableIndex(indexSize);
+                var culture        = reader.ReadMetadataTableIndex(indexSize);
+
+                var nameResolved   = reader.ReadStreamStringEntry(name);
 
                 result.Add(new CliMetadataTokenAssembly
                 {
@@ -33,6 +35,7 @@ namespace Disassembler
                     PublickKey     = publickKey,
                     Name           = name,
                     Culture        = culture,
+                    NameResolved   = nameResolved,
                 });
             }
 

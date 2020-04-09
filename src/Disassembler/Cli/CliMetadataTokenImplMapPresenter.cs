@@ -5,6 +5,7 @@ namespace Disassembler
 {
     internal static class CliMetadataTokenImplMapPresenter
     {
+        // Todo: Display ImportNameResolved!
         internal static void Present(CliMetadataToken token, IEnumerable<CliMetadataTokenImplMap> tokens, uint indexSize)
         {
             Shell.Table($"Metadata Token [{token}]", tokens, 8, x =>

@@ -6,17 +6,17 @@ namespace Disassembler
 {
     internal static class CliMetadataTokenExportedTypeReader
     {
-        internal static IList<CliMetadataTokenBase> Read(ImageReader reader, uint count, uint indexSize)
+        internal static IList<CliMetadataTokenBase> Read(MetadataStreamReader reader, uint count, uint indexSize)
         {
             var result = new List<CliMetadataTokenBase>();
 
             for (int i = 0; i < count; i++)
             {
                 var flags          = reader.ReadUInt32();
-                var typeDefId      = ImageReaderUtility.ReadMetadataTableIndex(reader, 4);
-                var typeName       = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
-                var typeNamespace  = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
-                var implementation = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
+                var typeDefId      = reader.ReadUInt32();
+                var typeName       = reader.ReadMetadataTableIndex(indexSize);
+                var typeNamespace  = reader.ReadMetadataTableIndex(indexSize);
+                var implementation = reader.ReadMetadataTableIndex(indexSize);
 
                 result.Add(new CliMetadataTokenExportedType
                 {

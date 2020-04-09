@@ -12,5 +12,7 @@ namespace Disassembler
         internal CliMetadataPropertyAttribute Flags;
         internal uint                         Name;
         internal uint                         Type;
+
+        internal string                       NameResolved;
     }
 }

@@ -9,8 +9,11 @@ namespace Disassembler
         {
         }
 
-        internal uint ResolutionScope;
-        internal uint TypeName;
-        internal uint TypeNamespace;
+        internal uint   ResolutionScope;
+        internal uint   TypeName;
+        internal uint   TypeNamespace;
+
+        internal string TypeNameResolved;
+        internal string TypeNamespaceResolved;
     }
 }

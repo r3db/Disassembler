@@ -9,7 +9,7 @@ namespace Disassembler
         {
             Shell.Table($"Metadata Token [{token}]", tokens, 8, x =>
             {
-                x.Add(nameof(CliMetadataTokenAssembly.HashAlgId),      "'{0}'",  9);
+                x.Add(nameof(CliMetadataTokenAssembly.HashAlgId),      "{0}",  9);
                 x.Add(nameof(CliMetadataTokenAssembly.MajorVersion),   indexSize == 2 ? "{0:x8}" : "{0:x8}", 12);
                 x.Add(nameof(CliMetadataTokenAssembly.MinorVersion),   indexSize == 2 ? "{0:x8}" : "{0:x8}", 12);
                 x.Add(nameof(CliMetadataTokenAssembly.BuildNumber),    indexSize == 2 ? "{0:x8}" : "{0:x8}", 11);
@@ -19,6 +19,7 @@ namespace Disassembler
                 x.Add(nameof(CliMetadataTokenAssembly.Name),           indexSize == 2 ? "{0:x4}" : "{0:x8}",  8);
                 x.Add(nameof(CliMetadataTokenAssembly.Culture),        indexSize == 2 ? "{0:x4}" : "{0:x8}",  8);
 
+                x.Add(nameof(CliMetadataTokenAssembly.NameResolved),   "'{0}'", 32);
             });
         }
     }

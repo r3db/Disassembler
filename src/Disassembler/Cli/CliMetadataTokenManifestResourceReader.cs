@@ -5,7 +5,7 @@ namespace Disassembler
 {
     internal static class CliMetadataTokenManifestResourceReader
     {
-        internal static IList<CliMetadataTokenBase> Read(ImageReader reader, uint count, uint indexSize)
+        internal static IList<CliMetadataTokenBase> Read(MetadataStreamReader reader, uint count, uint indexSize)
         {
             var result = new List<CliMetadataTokenBase>();
 
@@ -13,8 +13,8 @@ namespace Disassembler
             {
                 var offset       = reader.ReadUInt32();
                 var flags          = reader.ReadUInt32();
-                var name           = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
-                var implementation = ImageReaderUtility.ReadMetadataTableIndex(reader, indexSize);
+                var name           = reader.ReadMetadataTableIndex(indexSize);
+                var implementation = reader.ReadMetadataTableIndex(indexSize);
 
                 result.Add(new CliMetadataTokenManifestResource
                 {

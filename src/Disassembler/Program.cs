@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace Disassembler
 {
@@ -10,7 +11,7 @@ namespace Disassembler
         {
             //const string path = @"C:\Users\r3db\Desktop\dll\odbc32.dll";
             const string path = "Disassembler.dll";
-            const bool present = true;
+            const bool present = false;
 
             using (var br = new ImageReader(File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read)))
             {
@@ -162,7 +163,7 @@ namespace Disassembler
         {
             var cliHeader         = ReadCliHeader(reader, present);
             var cliMetadataHeader = ReadCliMetadataHeader(reader, cliHeader, present);
-            var cliMetadataTable  = ReadCliMetadataTableStream(reader, cliMetadataHeader.NumberOfStreams, present);
+            var cliMetadataTable  = ReadCliMetadataTableStream(reader, cliHeader.MetadataRva, cliMetadataHeader.NumberOfStreams, present);
 
             return new CoffDirectoryTableCli
             {
@@ -198,13 +199,16 @@ namespace Disassembler
             return header;
         }
 
-        private static CliMetadataTableStream ReadCliMetadataTableStream(ImageReader reader, ushort numberOfStreams, bool present)
+        private static CliMetadataTableStream ReadCliMetadataTableStream(ImageReader reader, uint metadataRva, ushort numberOfStreams, bool present)
         {
-            var result = new CliMetadataTableStream();
-            var streamHeaders = ReadCliMetadataStreamHeaders(reader, numberOfStreams, present);
+            var result               = new CliMetadataTableStream();
+            var streamHeaders        = ReadCliMetadataStreamHeaders(reader, numberOfStreams, present);
+            var metadataStreamReader = new MetadataStreamReader(reader, streamHeaders, metadataRva);
 
             foreach (var item in streamHeaders)
             {
+                reader.ToRva(item.Offset + metadataRva);
+
                 if (present)
                 {
                     Shell.WriteHeader($"CLI Metadata Table Stream Header [{item.Name}]");
@@ -214,23 +218,27 @@ namespace Disassembler
                 {
                     case "#~":
                     {
-                        result.DefaultCompressed = ReadCliMetadataTableStreamDefaultCompressed(reader, present);
+                        result.DefaultCompressed = ReadCliMetadataTableStreamDefaultCompressed(metadataStreamReader, present);
                         break;
                     }
                     case "#Strings":
                     {
+                        // Should not be read directly, It may contain garbage!
                         break;
                     }
                     case "#US":
                     {
+                        // Should not be read directly, It may contain garbage!
                         break;
                     }
                     case "#GUID":
                     {
+                        // Should not be read directly, It may contain garbage, I'm not sure!
                         break;
                     }
                     case "#Blob":
                     {
+                        // Should not be read directly!
                         break;
                     }
                     default:
@@ -255,7 +263,7 @@ namespace Disassembler
             return result;
         }
 
-        private static CliMetadataTableStreamDefaultCompressed ReadCliMetadataTableStreamDefaultCompressed(ImageReader reader, bool present)
+        private static CliMetadataTableStreamDefaultCompressed ReadCliMetadataTableStreamDefaultCompressed(MetadataStreamReader reader, bool present)
         {
             var header = CliMetadataTableHeaderReader.Read(reader);
 

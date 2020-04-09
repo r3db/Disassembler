@@ -5,7 +5,7 @@ namespace Disassembler
 {
     internal static class CliMetadataTokenBaseReader
     { 
-        internal static IList<IList<CliMetadataTokenBase>> Read(ImageReader reader, CliMetadataTableHeader tableHeader, uint indexSize)
+        internal static IList<IList<CliMetadataTokenBase>> Read(MetadataStreamReader reader, CliMetadataTableHeader tableHeader, uint indexSize)
         {
             var result = new List<IList<CliMetadataTokenBase>>();
 

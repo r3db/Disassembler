@@ -12,5 +12,7 @@ namespace Disassembler
         internal ushort Flags;
         internal uint   Name;
         internal ushort Sequence;
+
+        internal string NameResolved;
     }
 }

@@ -11,7 +11,7 @@ namespace Disassembler
             {
                 x.Add(nameof(CliMetadataTokenCustomAttribute.Parent), indexSize == 2 ? "{0:x4}" : "{0:x8}",  8);
                 x.Add(nameof(CliMetadataTokenCustomAttribute.Type),   indexSize == 2 ? "{0:x4}" : "{0:x8}",  8);
-                x.Add(nameof(CliMetadataTokenCustomAttribute.Value),  indexSize == 2 ? "{0:x4}" : "{0:x8}", 65);
+                x.Add(nameof(CliMetadataTokenCustomAttribute.Value),  indexSize == 2 ? "{0:x4}" : "{0:x8}", 135);
             });
         }
     }

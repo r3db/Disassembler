@@ -9,11 +9,14 @@ namespace Disassembler
         {
         }
 
-        internal uint Flags;
-        internal uint TypeName;
-        internal uint TypeNamespace;
-        internal uint Extends;
-        internal uint FieldList;
-        internal uint MethodList;
+        internal uint   Flags;
+        internal uint   TypeName;
+        internal uint   TypeNamespace;
+        internal uint   Extends;
+        internal uint   FieldList;
+        internal uint   MethodList;
+
+        internal string TypeNameResolved;
+        internal string TypeNamespaceResolved;
     }
 }

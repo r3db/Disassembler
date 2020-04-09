@@ -19,5 +19,7 @@ namespace Disassembler
         internal uint                     PublickKey;
         internal uint                     Name;
         internal uint                     Culture;
+
+        internal string                   NameResolved;
     }
 }

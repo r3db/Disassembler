@@ -9,9 +9,10 @@ namespace Disassembler
         {
             Shell.Table($"Metadata Token [{token}]", tokens, 8, x =>
             {
-                x.Add(nameof(CliMetadataTokenProperty.Flags), "{0}", 5);
-                x.Add(nameof(CliMetadataTokenProperty.Name),  indexSize == 2 ? "{0:x4}" : "{0:x8}",  8);
-                x.Add(nameof(CliMetadataTokenProperty.Type),  indexSize == 2 ? "{0:x4}" : "{0:x8}", 68);
+                x.Add(nameof(CliMetadataTokenProperty.Flags),        indexSize == 2 ? "{0:x4}" : "{0:x8}",  8);
+                x.Add(nameof(CliMetadataTokenProperty.Name),         indexSize == 2 ? "{0:x4}" : "{0:x8}",  8);
+                x.Add(nameof(CliMetadataTokenProperty.Type),         indexSize == 2 ? "{0:x4}" : "{0:x8}",  8);
+                x.Add(nameof(CliMetadataTokenProperty.NameResolved), "'{0}'", 122);
             });
         }
     }

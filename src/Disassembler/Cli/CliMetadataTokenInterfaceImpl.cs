@@ -9,7 +9,9 @@ namespace Disassembler
         {
         }
 
-        internal uint Class;
-        internal uint Interface;
+        internal uint   Class;
+        internal uint   Interface;
+
+        internal string ClassResolved;
     }
 }

@@ -11,7 +11,7 @@ namespace Disassembler
     {
         // Internal Const Data
         private const int Length1 = 30;
-        private const int Length2 = 90;
+        private const int Length2 = 160;
         private const int TruncateLength = 50;
 
         // Methods
@@ -83,11 +83,12 @@ namespace Disassembler
 
         internal static void WriteItem(string name, IList<ushort> value)
         {
-            var items = value.Take(6).Select(x => $"{x:x4}").ToList();
+            var itemCount = 18;
+            var items = value.Take(itemCount).Select(x => $"{x:x4}").ToList();
 
-            if (value.Count > 7)
+            if (value.Count > itemCount)
             {
-                items.Insert(5, "(...)");
+                items.Insert(itemCount - 1, "(...)");
             }
 
             var missing = value.Count > 7
@@ -118,12 +119,12 @@ namespace Disassembler
 
         internal static void WriteItem(string name, IList<uint> value)
         {
-            var itemCount = 4;
+            var itemCount = 11;
             var items = value.Take(itemCount).Select(x => $"{x:x8}").ToList();
 
             if (value.Count > itemCount)
             {
-                items.Insert(itemCount, "(...)");
+                items.Insert(itemCount - 1, "(...)");
             }
 
             var missing = value.Count > itemCount
@@ -184,7 +185,17 @@ namespace Disassembler
             foreach (var d in descriptors.Descriptors)
             {
                 var a = typeof(T).GetMember(d.Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FirstOrDefault();
-                var x = "| " + d.Name + " " + new string(' ', d.Size - d.Name.Length);
+
+                var extra = 0;
+
+                var k = ((FieldInfo)a).FieldType;
+
+                if (k == typeof(string))
+                {
+                    extra = 2;
+                }
+
+                var x = "| " + d.Name + " " + new string(' ', d.Size - d.Name.Length + extra);
 
                 Console.Write(x);
             }
@@ -209,18 +220,22 @@ namespace Disassembler
                     if (a != null && a is FieldInfo)
                     {
                         value = ((FieldInfo)a).GetValue(item);
+                    };
+
+                    var q = string.Format("{0}", value);
+                    var l1 = q.Length;
+                    q = q.Substring(0, Math.Min(descriptor.Size, q.Length));
+                    var l2 = q.Length;
+
+                    if (l1 != l2)
+                    {
+                        q = q.Substring(0, q.Length - 4) + " ...";
                     }
 
-                    var realValue = value != null
-                        ? value.GetType().IsEnum
-                            ? (int)value
-                            : value
-                        : value;
+                    var x = "| " + descriptor.Format + " " + new string(' ', descriptor.Size - q.Length);
+                    var w = string.Format(x, q);
 
-                    var x = "| " + descriptor.Format + " " + new string(' ', descriptor.Size - string.Format(descriptor.Format, realValue).Length);
-                    var w = string.Format(x, realValue);
-
-                    Console.Write(w, value);
+                    Console.Write(w);
                 }
 
                 Console.WriteLine("|");              

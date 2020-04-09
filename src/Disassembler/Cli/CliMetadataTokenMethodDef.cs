@@ -15,5 +15,7 @@ namespace Disassembler
         internal uint   Name;
         internal uint   Signature;
         internal uint   ParamList;
+
+        internal string NameResolved;
     }
 }
