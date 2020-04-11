@@ -8,3 +8,5 @@ Disassembles PECOFF executables both for managed and unmanaged code.
 ![image](https://user-images.githubusercontent.com/9978724/78860329-d5f3e480-7a29-11ea-96f8-783aa19b5ef3.png)
 
 ![image](https://user-images.githubusercontent.com/9978724/79034554-bb974380-7bae-11ea-8af8-50e2728ddd98.png)
+
+![image](https://user-images.githubusercontent.com/9978724/79034596-1cbf1700-7baf-11ea-804e-9e05acf218a4.png)
