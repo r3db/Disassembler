@@ -48,6 +48,11 @@ namespace Disassembler
             return _reader.ReadByte();
         }
 
+        internal byte[] ReadBytes(uint count)
+        {
+            return _reader.ReadBytes((int)count);
+        }
+
         internal byte[] ReadBytes(int count)
         {
             return _reader.ReadBytes(count);
@@ -78,6 +83,16 @@ namespace Disassembler
         internal ulong ReadUInt64()
         {
             return _reader.ReadUInt64();
+        }
+
+        internal float ReadSingle()
+        {
+            return _reader.ReadSingle();
+        }
+
+        internal double ReadDouble()
+        {
+            return _reader.ReadDouble();
         }
 
         internal string ReadString(int length)

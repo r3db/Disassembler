@@ -4,7 +4,7 @@ namespace Disassembler
 {
     internal sealed class CliMetadataTokenModule : CliMetadataTokenBase
     {
-        public CliMetadataTokenModule()
+        internal CliMetadataTokenModule()
             : base(CliMetadataToken.Module)
         {
         }

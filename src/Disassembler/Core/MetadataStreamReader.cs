@@ -21,10 +21,18 @@ namespace Disassembler
             }
         }
 
+        // Properties
+        internal ImageReader BaseReader { get { return _reader; } }
+
         // Methods
         internal byte ReadByte()
         {
             return _reader.ReadByte();
+        }
+
+        internal byte[] ReadBytes(uint count)
+        {
+            return _reader.ReadBytes(count);
         }
 
         internal ushort ReadUInt16()
@@ -40,6 +48,16 @@ namespace Disassembler
         internal ulong ReadUInt64()
         {
             return _reader.ReadUInt64();
+        }
+
+        internal float ReadSingle()
+        {
+            return _reader.ReadSingle();
+        }
+
+        internal double ReadDouble()
+        {
+            return _reader.ReadDouble();
         }
 
         internal uint ReadMetadataTableIndex(uint size)

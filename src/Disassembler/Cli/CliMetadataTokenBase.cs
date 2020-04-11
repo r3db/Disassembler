@@ -2,14 +2,13 @@
 
 namespace Disassembler
 {
-
     internal abstract class CliMetadataTokenBase
     {
-        public CliMetadataTokenBase(CliMetadataToken kind)
+        internal CliMetadataTokenBase(CliMetadataToken kind)
         {
             Kind = kind;
         }
 
-        public CliMetadataToken Kind { get; }
+        internal CliMetadataToken Kind { get; }
     }
 }

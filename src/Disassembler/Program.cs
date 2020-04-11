@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
+using System.Linq;
 
 namespace Disassembler
 {
@@ -11,25 +11,30 @@ namespace Disassembler
         {
             //const string path = @"C:\Users\r3db\Desktop\dll\odbc32.dll";
             const string path = "Disassembler.dll";
-            const bool present = false;
+            const bool present = true;
 
             using (var br = new ImageReader(File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read)))
             {
-                var dosHeader                   = ReadDosHeader(br, present);
-                var coffHeader                  = ReadCoffHeader(br, dosHeader.Lfanew, present);
+                var dosHeader = ReadDosHeader(br, present);
+                var coffHeader = ReadCoffHeader(br, dosHeader.Lfanew, present);
 
                 if (coffHeader.SizeOfOptionalHeader == 0)
                 {
                     throw new NotSupportedException();
                 }
 
-                var coffOptionalHeader          = ReadCoffOptionalHeader(br, present);
+                var coffOptionalHeader = ReadCoffOptionalHeader(br, present);
                 var coffOptionalDataDirectories = ReadCoffOptionalDataDirectories(br, coffOptionalHeader.NumberOfRvaAndSizes, present);
-                var coffSectionHeaders          = ReadCoffSectionHeaders(br, coffHeader.NumberOfSections, present);
+                var coffSectionHeaders = ReadCoffSectionHeaders(br, coffHeader.NumberOfSections, present);
 
                 br.AddSections(coffSectionHeaders);
 
-                var directoryTables             = ReadCoffDirectoryTables(br, coffOptionalHeader, coffOptionalDataDirectories, present);
+                var directoryTables    = ReadCoffDirectoryTables(br, coffOptionalHeader, coffOptionalDataDirectories, present);
+
+                if (present)
+                {
+                    PresentIL(br, directoryTables);
+                }
             }
         }
 
@@ -135,7 +140,7 @@ namespace Disassembler
             return result;
         }
 
-        private static CoffDirectoryTable ReadCoffDirectoryTableExport(ImageReader reader, bool present)
+        private static CoffDirectoryTableExport ReadCoffDirectoryTableExport(ImageReader reader, bool present)
         {
             var table = CoffDirectoryTableExportReader.Read(reader);
 
@@ -147,7 +152,7 @@ namespace Disassembler
             return table;
         }
 
-        private static CoffDirectoryTable ReadCoffDirectoryTableImport(ImageReader reader, CoffOptionalHeader optionalHeader, bool present)
+        private static CoffDirectoryTableImport ReadCoffDirectoryTableImport(ImageReader reader, CoffOptionalHeader optionalHeader, bool present)
         {
             var table = CoffDirectoryTableImportReader.Read(reader, optionalHeader);
 
@@ -159,7 +164,7 @@ namespace Disassembler
             return table;
         }
 
-        private static CoffDirectoryTable ReadCoffDirectoryTableCli(ImageReader reader, bool present)
+        private static CoffDirectoryTableCli ReadCoffDirectoryTableCli(ImageReader reader, bool present)
         {
             var cliHeader         = ReadCliHeader(reader, present);
             var cliMetadataHeader = ReadCliMetadataHeader(reader, cliHeader, present);
@@ -204,6 +209,8 @@ namespace Disassembler
             var result               = new CliMetadataTableStream();
             var streamHeaders        = ReadCliMetadataStreamHeaders(reader, numberOfStreams, present);
             var metadataStreamReader = new MetadataStreamReader(reader, streamHeaders, metadataRva);
+
+            result.Streams = streamHeaders;
 
             foreach (var item in streamHeaders)
             {
@@ -284,6 +291,50 @@ namespace Disassembler
                 Header = header,
                 Tokens = tokens,
             };
+        }
+
+        private static void PresentIL(ImageReader br, IList<CoffDirectoryTable> directoryTables)
+        {
+            var table  = directoryTables.OfType<CoffDirectoryTableCli>().FirstOrDefault();
+            
+            if (table == null)
+            {
+                return;
+            }
+            
+            var tokens = table.Tables.DefaultCompressed.Tokens.SelectMany(x => x).OfType<CliMetadataTokenMethodDef>().ToArray();
+            var reader = new MetadataStreamReader(br, table.Tables.Streams, table.Header.MetadataRva);
+
+            var size = 80;
+
+            foreach (var item in tokens)
+            {
+                Console.WriteLine("\t|" + new string('-', size) + "|");
+
+                var a = string.Format("\t| RVA : {0:x4}", item.Rva);
+                var b = string.Format("\t| Name: '{0}'", item.NameResolved);
+
+                Console.WriteLine(a + new string(' ', size + 2 - a.Length) + "|");
+                Console.WriteLine(b + new string(' ', size + 2 - b.Length) + "|");
+                Console.WriteLine("\t|" + new string('-', size) + "|");
+
+                foreach (var inst in ILInstructionDecoder.Decode(reader, item.Rva))
+                {
+                    if (inst.OpCode.Length == 1)
+                    {
+                        var line = string.Format("\t| IL_{0:x4} 0x{1:x2}      {2}", inst.Offset, inst.OpCode[0], inst.Name);
+                        Console.WriteLine(line + new string(' ', size + 2 - line.Length) + "|");
+                    }
+                    else
+                    {
+                        var line = string.Format("\t| IL_{0:x4} 0x{1:x2} 0x{2:x2} {3}", inst.Offset, inst.OpCode[0], inst.OpCode[1], inst.Name);
+                        Console.WriteLine(line + new string(' ', size + 2 - line.Length) + "|");
+                    }
+                }
+
+                Console.WriteLine("\t|" + new string('-', size) + "|");
+                Console.WriteLine();
+            }
         }
     }
 }
