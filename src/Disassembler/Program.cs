@@ -9,13 +9,12 @@ namespace Disassembler
     {
         private static void Main()
         {
-            //const string path = @"C:\Users\r3db\Desktop\dll\odbc32.dll";
-            const string path = "Disassembler.dll";
-            const bool present = true;
+            const string path = @"C:\Users\r3db\Desktop\dll\odbc32.dll";
+            //const string path = "Disassembler.dll";
+            const bool present = false;
 
             using (var br = new ImageReader(File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read)))
             {
-                var dosHeader = ReadDosHeader(br, present);
                 var dosHeader  = ReadDosHeader(br, present);
                 var coffHeader = ReadCoffHeader(br, dosHeader.Lfanew, present);
 
@@ -24,10 +23,8 @@ namespace Disassembler
                     throw new NotSupportedException();
                 }
 
-                var coffOptionalHeader = ReadCoffOptionalHeader(br, present);
                 var coffOptionalHeader          = ReadCoffOptionalHeader(br, present);
                 var coffOptionalDataDirectories = ReadCoffOptionalDataDirectories(br, coffOptionalHeader.NumberOfRvaAndSizes, present);
-                var coffSectionHeaders = ReadCoffSectionHeaders(br, coffHeader.NumberOfSections, present);
                 var coffSectionHeaders          = ReadCoffSectionHeaders(br, coffHeader.NumberOfSections, present);
 
                 br.AddSections(coffSectionHeaders);
@@ -37,6 +34,12 @@ namespace Disassembler
                 if (present)
                 {
                     PresentIL(br, directoryTables);
+                }
+
+                //if (present)
+                {
+                    br.ToRva(coffOptionalHeader.AddressOfEntryPoint);
+                    IntelInstructionDecoder.Decode(br, IntelInstructionDecoderMode.x64, 100);
                 }
             }
         }
