@@ -16,6 +16,7 @@ namespace Disassembler
             using (var br = new ImageReader(File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read)))
             {
                 var dosHeader = ReadDosHeader(br, present);
+                var dosHeader  = ReadDosHeader(br, present);
                 var coffHeader = ReadCoffHeader(br, dosHeader.Lfanew, present);
 
                 if (coffHeader.SizeOfOptionalHeader == 0)
@@ -24,12 +25,14 @@ namespace Disassembler
                 }
 
                 var coffOptionalHeader = ReadCoffOptionalHeader(br, present);
+                var coffOptionalHeader          = ReadCoffOptionalHeader(br, present);
                 var coffOptionalDataDirectories = ReadCoffOptionalDataDirectories(br, coffOptionalHeader.NumberOfRvaAndSizes, present);
                 var coffSectionHeaders = ReadCoffSectionHeaders(br, coffHeader.NumberOfSections, present);
+                var coffSectionHeaders          = ReadCoffSectionHeaders(br, coffHeader.NumberOfSections, present);
 
                 br.AddSections(coffSectionHeaders);
 
-                var directoryTables    = ReadCoffDirectoryTables(br, coffOptionalHeader, coffOptionalDataDirectories, present);
+                var directoryTables             = ReadCoffDirectoryTables(br, coffOptionalHeader, coffOptionalDataDirectories, present);
 
                 if (present)
                 {
