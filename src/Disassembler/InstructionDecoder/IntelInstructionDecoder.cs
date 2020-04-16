@@ -13,26 +13,118 @@ namespace Disassembler
 
     internal sealed class RexPrefix
     {
-        internal readonly byte _prefix;
+        internal readonly byte _value;
 
         internal RexPrefix(byte prefix)
         {
-            _prefix = prefix;
+            _value = prefix;
         }
 
-        public byte Code
+        internal byte Code
         {
             get
             {
-                return _prefix;
+                return _value;
             }
         }
 
-        public int W
+        internal int W
         { 
             get
             {
-                return (_prefix & 0b_0000_1000) >> 3;
+                return (_value & 0b_0000_1000) >> 3;
+            }
+        }
+
+        internal byte Value
+        {
+            get
+            {
+                return _value;
+            }
+        }
+    }
+
+    internal sealed class ModRM
+    {
+        private readonly byte _value;
+
+        internal ModRM(byte modRM)
+        {
+            _value = modRM;
+        }
+
+        internal int Mod
+        {
+            get
+            {
+                return (_value & 0b_1100_0000) >> 6;
+            }
+        }
+
+        internal int Reg
+        {
+            get
+            {
+                return (_value & 0b_0011_1000) >> 3;
+            }
+        }
+
+        internal int Rm
+        {
+            get
+            {
+                return (_value & 0b_0000_0111) >> 0;
+            }
+        }
+
+        internal byte Value
+        { 
+            get
+            { 
+                return _value;
+            }
+        }
+    }
+
+    internal sealed class SIB
+    {
+        private readonly byte _value;
+
+        internal SIB(byte sib)
+        {
+            _value = sib;
+        }
+
+        internal int Scale
+        {
+            get
+            {
+                return (_value & 0b_1100_0000) >> 6;
+            }
+        }
+
+        internal int Index
+        {
+            get
+            {
+                return (_value & 0b_0011_1000) >> 3;
+            }
+        }
+
+        internal int Base
+        {
+            get
+            {
+                return (_value & 0b_0000_0111) >> 0;
+            }
+        }
+
+        internal byte Value
+        {
+            get
+            {
+                return _value;
             }
         }
     }
@@ -48,45 +140,21 @@ namespace Disassembler
         }
     }
 
-    // https://gerardnico.com/lang/assembly/intel/modrm
-    // https://gerardnico.com/lang/assembly/intel/instruction
-    // http://ref.x86asm.net/#column_x
-    // http://ref.x86asm.net/coder32.html
-    // https://marcin-chwedczuk.github.io/a-closer-look-at-portable-executable-msdos-stub
-    // https://blog.kowalczyk.info/articles/pefileformat.html
-    // file:///C:/Users/r3db/Downloads/Microsoft%20Portable%20Executable%20and%20Common%20Object%20File%20Format%20Specification%20-%201999%20(pecoff).pdf
     internal static class IntelInstructionDecoder
     {
         internal static IList<IntelInstruction> Decode(ImageReader reader, IntelInstructionDecoderMode mode, int codeSize)
         {
             var result = new List<IntelInstruction>();
-            RexPrefix prefix = null;
-
+            
             for (int i = 0; i < codeSize; i++)
             {
-                var offset = i + 0x8000d760;
-                var opCode = reader.ReadByte();
+                var offset             = i + 0x8000D0E0;
+                var offsetPresentation = string.Format("{0:x8} ", offset);
+                var opCode             = reader.ReadByte();
+                var prefix             = (RexPrefix)null;
 
                 switch (opCode)
                 {
-                    //case 0x0e:
-                    //{
-                    //    Console.WriteLine("{0:X8} {1:X2}         push cs", offset, opCode);
-                    //    break;
-                    //}
-                    //case 0x1f:
-                    //{
-                    //    Console.WriteLine("{0:X8} {1:X2}         pop ds", offset, opCode);
-                    //    break;
-                    //}
-                    //case 0x20:
-                    //{
-                    //    // Todo: I do not understand this one!
-                    //    var a = reader.ReadByte();
-                    //    var b = reader.ReadByte();
-                    //    Console.WriteLine("{0:X8} {1:X2}{2:X2}{3:X2}     and [bx+si+0x{4:X2}],dh ", offset, opCode, a, b, b);
-                    //    break;
-                    //}
                     case 0x40:
                     case 0x41:
                     case 0x42:
@@ -96,94 +164,361 @@ namespace Disassembler
                     case 0x46:
                     case 0x47:
                     case 0x48:
-                    {
-                        if (mode == IntelInstructionDecoderMode.x64)
-                        {
-                            prefix = new RexPrefix(opCode);
-                        }
-
-                        break;
-                    }
                     case 0x49:
                     case 0x4a:
-                    {
-                        if (mode == IntelInstructionDecoderMode.x64)
-                        {
-                            prefix = new RexPrefix(opCode);
-                        }
-
-                        break;
-                    }
                     case 0x4b:
                     case 0x4c:
                     case 0x4d:
                     case 0x4e:
                     case 0x4f:
                     {
+                        if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            prefix = new RexPrefix(opCode);
+                        }
+
                         break;
                     }
-                    //case 0x54:
-                    //{
-                    //    Console.WriteLine("{0:X8} {1:X2}         push sp", offset, opCode);
-                    //    break;
-                    //}
+                }
+
+                var prefixPresentation = prefix != null
+                    ? string.Format("{0:x2} ", prefix.Code)
+                    : string.Empty;
+
+                if (prefix != null)
+                {
+                    opCode = reader.ReadByte();
+                    i += 1;
+                }
+
+                switch (opCode)
+                {
+                    case 0x33:
+                    {
+                        InternalParse(reader, offset, ref i, prefix, opCode, "xor");
+                        break;
+                    }
+                    case 0x3b:
+                    {
+                        var modRM = new ModRM(reader.ReadByte());
+                        i += 1;
+
+                        if (mode == IntelInstructionDecoderMode.x86)
+                        {
+                            Console.WriteLine("{0}{1:x2} {2:x2} {3}", offsetPresentation, opCode, modRM.Value, "cmp");
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            Console.WriteLine("{0}{1:x2} {2:x2} {3}", offsetPresentation, opCode, modRM.Value, "cmp");
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(mode.ToString());
+                        }
+
+                        break;
+                    }
+                    case 0x39:
+                    {
+                        InternalParse(reader, offset, ref i, prefix, opCode, "cmp");
+                        break;
+                    }
+                    case 0x50:
+                    {
+                        if (mode == IntelInstructionDecoderMode.x86)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "push", "eax");
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "push", "rax");
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(mode.ToString());
+                        }
+
+                        break;
+                    }
+                    case 0x51:
+                    {
+                        if (mode == IntelInstructionDecoderMode.x86)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "push", "ecx");
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "push", "rcx");
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(mode.ToString());
+                        }
+
+                        break;
+                    }
+                    case 0x52:
+                    {
+                        if (mode == IntelInstructionDecoderMode.x86)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "push", "edx");
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "push", "rdx");
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(mode.ToString());
+                        }
+
+                        break;
+                    }
+                    case 0x53:
+                    {
+                        if (mode == IntelInstructionDecoderMode.x86)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "push", "ebx");
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "push", "rbx");
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(mode.ToString());
+                        }
+
+                        break;
+                    }
+                    case 0x54:
+                    {
+                        if (mode == IntelInstructionDecoderMode.x86)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "push", "esp");
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "push", "rsp");
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(mode.ToString());
+                        }
+
+                        break;
+                    }
+                    case 0x55:
+                    {
+                        if (mode == IntelInstructionDecoderMode.x86)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "push", "ebp");
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "push", "rbp");
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(mode.ToString());
+                        }
+
+                        break;
+                    }
+                    case 0x56:
+                    {
+                        if (mode == IntelInstructionDecoderMode.x86)
+                        {
+                            Console.WriteLine("{0}{1:x2} {2} {3}", offsetPresentation, opCode, "push", "esi");
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            if (prefix != null)
+                            {
+                                Console.WriteLine("{0}{1}{2:x2} {3} {4}", offsetPresentation, prefixPresentation, opCode, "push", "r14");
+                            }
+                            else
+                            {
+                                Console.WriteLine("{0}{1:x2} {2} {3}", offsetPresentation, opCode, "push", "rsi");
+                            }
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(mode.ToString());
+                        }
+
+                        break;
+                    }
                     case 0x57:
                     {
-                        result.Add(new IntelInstruction(offset - 1, opCode, "push rdi"));
+                        if (mode == IntelInstructionDecoderMode.x86)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "push", "edi");
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "push", "rdi");
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(mode.ToString());
+                        }
+
                         break;
                     }
-                    //case 0x67:
-                    //{
-                    //    // Todo: Complete Address Modifier!
-                    //    break;
-                    //}
-                    //case 0x68:
-                    //{
-                    //    var payload = reader.ReadUInt16();
-                    //    var a = (payload & 0b_0000_0000_1111_1111) >> 0;
-                    //    var b = (payload & 0b_1111_1111_0000_0000) >> 0;
-                    //    Console.WriteLine("{0:X8} {1:X2}{2:X2}{3:X2}   push word 0x{4:X4}", offset, opCode, a, b, payload);
-                    //    break;
-                    //}
-                    //case 0x6d:
-                    //{
-                    //    Console.WriteLine("{0:X8} {1:X2}         insw", offset, opCode);
-                    //    break;
-                    //}
-                    //case 0x6f:
-                    //{
-                    //    Console.WriteLine("{0:X8} {1:X2}         outsw", offset, opCode);
-                    //    break;
-                    //}
-                    //case 0x72:
-                    //{
-                    //    var payload = reader.ReadByte();
-                    //    var jump = fix - offset + payload;
-                    //    Console.WriteLine("{0:X8} {1:X2}{2:X2}       jc 0x{3:X2}", offset, opCode, payload, jump);
-                    //    break;
-                    //}
+                    case 0x5f:
+                    {
+                        if (mode == IntelInstructionDecoderMode.x86)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "pop", "edi");
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            Console.WriteLine("{0:X8} {1:x2} {2} {3}", offset, opCode, "pop", "rdi");
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(mode.ToString());
+                        }
+
+                        break;
+                    }
+                    case 0x70:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jo", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x71:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jno", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x72:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jb", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x73:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jnb", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x74:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jz", offset + 2 + immediate);
+                        break;
+                    }
                     case 0x75:
                     {
-                        var op = reader.ReadByte();
+                        var immediate = reader.ReadByte();
                         i += 1;
 
-                        result.Add(new IntelInstruction(offset, opCode, string.Format("jnz 0x{0:x2}", offset + 2 + op)));
-
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jnz", offset + 2 + immediate);
                         break;
                     }
-
-                    case 0x83:
+                    case 0x76:
                     {
-                        var modRM = reader.ReadByte();
+                        var immediate = reader.ReadByte();
                         i += 1;
 
-                        var mod = (modRM & 0b_1100_0000) >> 6;
-                        var reg = (modRM & 0b_0011_1000) >> 3;
-                        var rm  = (modRM & 0b_0000_0111) >> 0;
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jbe", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x77:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "ja", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x78:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "js", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x79:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jns", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x7a:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jp", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x7b:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jnp", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x7c:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jl", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x7d:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jnl", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x7e:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jle", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x7f:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jnle", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x81:
+                    {
+                        var modRM = new ModRM(reader.ReadByte());
+                        i += 1;
 
                         var mnemonic = string.Empty;
 
-                        switch (reg)
+                        switch (modRM.Reg)
                         {
                             case 0: mnemonic = "add"; break;
                             case 1: mnemonic = "or";  break;
@@ -195,106 +530,307 @@ namespace Disassembler
                             case 7: mnemonic = "cmp"; break;
                         }
 
-                        var op = reader.ReadByte();
-                        i += 1;
+                        uint immediate;
+                        string codePresentation;
 
-                        if (prefix != null)
+                        if (mode == IntelInstructionDecoderMode.x86)
                         {
-                            Console.WriteLine("{0:X8} {1:x2} {2:x2} {3:x2} {4:x2} {5}", offset - 1, prefix.Code, opCode, modRM, op, mnemonic);
-                            prefix = null;
+                            immediate = reader.ReadUInt16();
+                            i += 2;
+                            var codes = BitConverter.GetBytes(immediate);
+                            codePresentation = string.Format("{0:x2} {1:x2}", codes[0], codes[1]);
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            immediate = reader.ReadUInt32();
+                            i += 4;
+                            var codes = BitConverter.GetBytes(immediate);
+                            codePresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2}", codes[0], codes[1], codes[2], codes[3]);
                         }
                         else
                         {
-                            Console.WriteLine("{0:X8} {1:x2} {2:x2} {3:x2} {4}", offset, opCode, modRM, op, mnemonic);
+                            throw new NotSupportedException();
+                        }
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4:x2} {5}", offsetPresentation, prefixPresentation, opCode, modRM.Value, codePresentation, mnemonic);
+                        break;
+                    }
+                    case 0x83:
+                    {
+                        InternalParse(reader, offset, ref i, prefix, opCode, x =>
+                        {
+                            switch (x.Reg)
+                            {
+                                case 0: return "add";
+                                case 1: return "or";
+                                case 2: return "adc";
+                                case 3: return "sbb";
+                                case 4: return "and";
+                                case 5: return "sub";
+                                case 6: return "xor";
+                                case 7: return "cmp";
+                            }
+
+                            throw new NotSupportedException();
+                        });
+                        break;
+                    }
+                    case 0x85:
+                    {
+                        var modRM = new ModRM(reader.ReadByte());
+                        i += 1;
+
+                        if (mode == IntelInstructionDecoderMode.x86)
+                        {
+                            Console.WriteLine("{0}{1:x2} {2:x2} {3}", offsetPresentation, opCode, modRM.Value, "test");
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            Console.WriteLine("{0}{1}{2:x2} {3:x2} {4}", offsetPresentation, prefixPresentation, opCode, modRM.Value, "test");
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(mode.ToString());
                         }
 
                         break;
                     }
                     case 0x89:
                     {
-                        var modRM = reader.ReadByte();
-                        i += 1;
-
-                        var mod = (modRM & 0b_1100_0000) >> 6;
-                        var reg = (modRM & 0b_0011_1000) >> 3;
-                        var rm  = (modRM & 0b_0000_0111) >> 0;
-
-                        var sib = reader.ReadByte();
-                        i += 1;
-
-                        var op = reader.ReadByte();
-                        i += 1;
-
-                        if (prefix != null)
-                        {
-                            Console.WriteLine("{0:X8} {1:x2} {2:x2} {3:x2} {4:x2} {5:x2} {6}", offset - 1, prefix.Code, opCode, modRM, sib, op, "mov");
-                            prefix = null;
-                        }
-                        else 
-                        {
-                            throw new NotSupportedException();
-                        }
-
+                        InternalParse(reader, offset, ref i, prefix, opCode, "mov");
                         break;
                     }
                     case 0x8b:
                     {
-                        var modRM = reader.ReadByte();
-                        i += 1;
+                        InternalParse(reader, offset, ref i, prefix, opCode, "mov");
+                        break;
+                    }
+                    case 0x8d:
+                    {
+                        InternalParse(reader, offset, ref i, prefix, opCode, "lea");
+                        break;
+                    }
+                    case 0xbe:
+                    {
+                        var immediate = reader.ReadUInt32();
+                        i += 4;
+                        
+                        var codes = BitConverter.GetBytes(immediate);
+                        var codePresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2}", codes[0], codes[1], codes[2], codes[3]);
 
-                        var mod = (modRM & 0b_1100_0000) >> 6;
-                        var reg = (modRM & 0b_0011_1000) >> 3;
-                        var rm  = (modRM & 0b_0000_0111) >> 0;
+                        Console.WriteLine("{0}{1:x2} {2} {3} esi, 0x{4:x}", offsetPresentation, opCode, codePresentation, "mov", immediate);
+                        break;
+                    }
+                    case 0xcc:
+                    {
+                        Console.WriteLine("{0}{1:x2} {2}", offsetPresentation, opCode, "int 3");
+                        break;
+                    }
+                    case 0xe8:
+                    {
+                        uint immediate;
+                        string codePresentation;
 
-                        if (prefix != null)
+                        if (mode == IntelInstructionDecoderMode.x86)
                         {
-                            Console.WriteLine("{0:X8} {1:x2} {2:x2} {3:x2} {4}", offset - 1, prefix.Code, modRM, opCode, "mov");
-                            prefix = null;
+                            immediate = reader.ReadUInt16();
+                            i += 2;
+
+                            var codes = BitConverter.GetBytes(immediate);
+                            codePresentation = string.Format("{0:x2} {1:x2}", codes[0], codes[1]);
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            immediate = reader.ReadUInt32();
+                            i += 4;
+
+                            var codes = BitConverter.GetBytes(immediate);
+                            codePresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2}", codes[0], codes[1], codes[2], codes[3]);
                         }
                         else
                         {
-                            Console.WriteLine("{0:X8} {1:x2} {2:x2} {3}", offset, modRM, opCode, "mov");
+                            throw new NotSupportedException();
+                        }
+
+                        Console.WriteLine("{0}{1:x2} {2} {3} {4:x4}", offsetPresentation, opCode, codePresentation, "call", offset + 5 + immediate);
+                        break;
+                    }
+                    case 0xe9:
+                    {
+                        uint immediate;
+                        string codePresentation;
+
+                        if (mode == IntelInstructionDecoderMode.x86)
+                        {
+                            immediate = reader.ReadUInt16();
+                            i += 2;
+                            var codes = BitConverter.GetBytes(immediate);
+                            codePresentation = string.Format("{0:x2} {1:x2}", codes[0], codes[1]);
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            immediate = reader.ReadUInt32();
+                            i += 4;
+                            var codes = BitConverter.GetBytes(immediate);
+                            codePresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2}", codes[0], codes[1], codes[2], codes[3]);
+                        }
+                        else
+                        {
+                            throw new NotSupportedException();
+                        }
+
+                        Console.WriteLine("{0}{1:x2} {2} {3} {4:x4}", offsetPresentation, opCode, codePresentation, "jmp", offset + 5 + immediate);
+                        break;
+                    }
+                    case 0xeb:
+                    {
+                        var immediate = reader.ReadByte();
+                        i += 1;
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4} 0x{5:x2}", offsetPresentation, prefixPresentation, opCode, immediate, "jmp", offset + 2 + immediate);
+                        break;
+                    }
+                    case 0x0f:
+                    {
+                        opCode = reader.ReadByte();
+                        i += 1;
+
+                        var opCodePresentation = string.Format("{0:x2} {1:x2} ", 0x0f, opCode);
+
+                        switch (opCode)
+                        {
+                            case 0x44:
+                            {
+                                InternalParse(reader, offset, ref i, prefix, 0x0f, opCode, "cmovz");
+                                break;
+                            }
+                            case 0x84:
+                            {
+                                var immediate = reader.ReadInt32();
+                                i += 4;
+
+                                if (mode == IntelInstructionDecoderMode.x86)
+                                {
+                                    var codes = BitConverter.GetBytes(immediate);
+                                    var codePresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2}", codes[0], codes[1], codes[2], codes[3]);
+
+                                    Console.WriteLine("{0}{1}{2} {3} {4:x}", offsetPresentation, opCodePresentation, codePresentation, "jz", offset + immediate + 6);
+                                }
+                                else if (mode == IntelInstructionDecoderMode.x64)
+                                {
+                                    var codes = BitConverter.GetBytes(immediate);
+                                    var codePresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2}", codes[0], codes[1], codes[2], codes[3]);
+
+                                    Console.WriteLine("{0}{1}{2} {3} {4:x}", offsetPresentation, opCodePresentation, codePresentation, "jz", offset + immediate + 6);
+                                }
+                                else
+                                {
+                                    throw new InvalidOperationException(mode.ToString());
+                                }
+
+                                break;
+                            }
+                            case 0x85:
+                            {
+                                var immediate = reader.ReadInt32();
+                                i += 4;
+
+                                if (mode == IntelInstructionDecoderMode.x86)
+                                {
+                                    var codes = BitConverter.GetBytes(immediate);
+                                    var codePresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2}", codes[0], codes[1], codes[2], codes[3]);
+
+                                    Console.WriteLine("{0}{1}{2} {3} {4:x}", offsetPresentation, opCodePresentation, codePresentation, "jnz", offset + immediate + 6);
+                                }
+                                else if (mode == IntelInstructionDecoderMode.x64)
+                                {
+                                    var codes = BitConverter.GetBytes(immediate);
+                                    var codePresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2}", codes[0], codes[1], codes[2], codes[3]);
+
+                                    Console.WriteLine("{0}{1}{2} {3} {4:x}", offsetPresentation, opCodePresentation, codePresentation, "jnz", offset + immediate + 6);
+                                }
+                                else
+                                {
+                                    throw new InvalidOperationException(mode.ToString());
+                                }
+
+                                break;
+                            }
+                            case 0x87:
+                            {
+                                var immediate = reader.ReadInt32();
+                                i += 4;
+
+                                if (mode == IntelInstructionDecoderMode.x86)
+                                {
+                                    var codes = BitConverter.GetBytes(immediate);
+                                    var codePresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2}", codes[0], codes[1], codes[2], codes[3]);
+
+                                    Console.WriteLine("{0}{1}{2} {3} {4:x}", offsetPresentation, opCodePresentation, codePresentation, "ja", offset + immediate + 6);
+                                }
+                                else if (mode == IntelInstructionDecoderMode.x64)
+                                {
+                                    var codes = BitConverter.GetBytes(immediate);
+                                    var codePresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2}", codes[0], codes[1], codes[2], codes[3]);
+
+                                    Console.WriteLine("{0}{1}{2} {3} {4:x}", offsetPresentation, opCodePresentation, codePresentation, "ja", offset + immediate + 6);
+                                }
+                                else
+                                {
+                                    throw new InvalidOperationException(mode.ToString());
+                                }
+
+                                break;
+                            }
+                            default:
+                            {
+                                throw new InvalidOperationException(string.Format("0x0f 0x{0:x2}", opCode));
+                            }
                         }
 
                         break;
                     }
-                    //case 0xb4:
-                    //{
-                    //    var payload = reader.ReadByte();
-                    //    Console.WriteLine("{0:X8} {1:X2}{2:X2}       mov ah, 0x{3:X2}", offset, opCode, payload, payload);
-                    //    break;
-                    //}
-                    //case 0xb8:
-                    //{
-                    //    var payload = reader.ReadUInt16();
-                    //    var a = (payload & 0b_0000_0000_1111_1111) >> 0;
-                    //    var b = (payload & 0b_1111_1111_0000_0000) >> 0;
-                    //    Console.WriteLine("{0:X8} {1:X2}{2:X2}{3:X2}   mov ax, 0x{4:X4}", offset, opCode, a, b, payload);
-                    //    break;
-                    //}
-                    //case 0xbA:
-                    //{
-                    //    var payload = reader.ReadUInt16();
-                    //    var a = (payload & 0b_0000_0000_1111_1111) >> 0;
-                    //    var b = (payload & 0b_1111_1111_0000_0000) >> 0;
-                    //    Console.WriteLine("{0:X8} {1:X2}{2:X2}{3:X2}     mov dx, 0x{4:X4}", offset, opCode, a, b, payload);
-                    //    break;
-                    //}
-                    //case 0xcd:
-                    //{
-                    //    var payload = reader.ReadByte();
-                    //    Console.WriteLine("{0:X8} {1:X2}{2:X2}       int, 0x{3:X2}", offset, opCode, payload, payload);
-                    //    break;
-                    //}
-                    case 0xe8:
+                    case 0xff:
                     {
-                        var op = reader.ReadUInt32();
-                        i += 4;
+                        var modRM = new ModRM(reader.ReadByte());
+                        i += 1;
 
-                        var codes = BitConverter.GetBytes(op);
+                        var mnemonic = string.Empty;
 
-                        Console.WriteLine("{0:X8} {1:x2} {2:x2} {3:x2} {4:x2} {5:x2} {6} {7:x4}", offset, opCode, codes[0], codes[1], codes[2], codes[3], "call", offset + 5 + op);
+                        switch (modRM.Reg)
+                        {
+                            case 0: mnemonic = "inc";   break;
+                            case 1: mnemonic = "dec";   break;
+                            case 2: mnemonic = "call";  break;
+                            case 3: mnemonic = "callf"; break;
+                            case 4: mnemonic = "jmp";   break;
+                            case 5: mnemonic = "jmpf";  break;
+                            case 6: mnemonic = "push";  break;
+                        }
 
+                        uint immediate;
+                        string codePresentation;
+
+                        if (mode == IntelInstructionDecoderMode.x86)
+                        {
+                            immediate = reader.ReadUInt16();
+                            i += 2;
+                            var codes = BitConverter.GetBytes(immediate);
+                            codePresentation = string.Format("{0:x2} {1:x2}", codes[0], codes[1]);
+                        }
+                        else if (mode == IntelInstructionDecoderMode.x64)
+                        {
+                            immediate = reader.ReadUInt32();
+                            i += 4;
+                            var codes = BitConverter.GetBytes(immediate);
+                            codePresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2}", codes[0], codes[1], codes[2], codes[3]);
+                        }
+                        else
+                        {
+                            throw new NotSupportedException();
+                        }
+
+                        Console.WriteLine("{0}{1}{2:x2} {3:x2} {4:x2} {5}", offsetPresentation, prefixPresentation, opCode, modRM.Value, codePresentation, mnemonic);
                         break;
                     }
                     default:
@@ -305,6 +841,131 @@ namespace Disassembler
             }
 
             return result;
+        }
+
+        internal static void InternalParse(ImageReader reader, long offset, ref int i, RexPrefix prefix, byte opCode, string name)
+        {
+            InternalParse(reader, offset, ref i, prefix, -1, opCode, name);
+        }
+
+        internal static void InternalParse(ImageReader reader, long offset, ref int i, RexPrefix prefix, int opCodePrefix, byte opCode, string name)
+        {
+            var modRM = new ModRM(reader.ReadByte());
+            i += 1;
+
+            var sib = (SIB)null;
+
+            if (modRM.Mod != 0b_11 && modRM.Rm == 0b_100)
+            {
+                sib = new SIB(reader.ReadByte());
+                i += 1;
+            }
+
+            var displacementPresentation = string.Empty;
+
+            if (modRM.Mod == 0b_00 && modRM.Rm == 0b_101)
+            {
+                var displacement = reader.ReadInt32();
+                i += 4;
+                var codes = BitConverter.GetBytes(displacement);
+                displacementPresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2}", codes[0], codes[1], codes[2], codes[3]);
+            }
+            else if (modRM.Mod == 0b_01)
+            {
+                var displacement = reader.ReadByte();
+                i += 1;
+                displacementPresentation = string.Format("{0:x2} ", displacement);
+            }
+            else if (modRM.Mod == 0b_10)
+            {
+                var displacement = reader.ReadInt32();
+                i += 4;
+                var codes = BitConverter.GetBytes(displacement);
+                displacementPresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2} ", codes[0], codes[1], codes[2], codes[3]);
+            }
+
+            var offsetPresentation = prefix != null
+                ? string.Format("{0:x8} ", offset)
+                : string.Format("{0:x8} ", offset);
+
+            var prefixPresentation = prefix != null
+                ? string.Format("{0:x2} ", prefix.Code)
+                : string.Empty;
+
+            var sibPresentation = sib != null
+                ? string.Format("{0:x2} ", sib.Value)
+                : string.Empty;
+
+            var opCodePresentation = opCodePrefix == -1
+                ? string.Format("{0:x2}", opCode)
+                : string.Format("{0:x2} {1:x2}", opCodePrefix, opCode);
+
+            Console.WriteLine("{0}{1}{2} {3:x2} {4}{5}{6}", offsetPresentation, prefixPresentation, opCodePresentation, modRM.Value, sibPresentation, displacementPresentation, name);
+        }
+
+        internal static void InternalParse(ImageReader reader, long offset, ref int i, RexPrefix prefix, byte opCode, Func<ModRM, string> nameResolver)
+        {
+            InternalParse(reader, offset, ref i, prefix, -1, opCode, nameResolver);
+        }
+
+        internal static void InternalParse(ImageReader reader, long offset, ref int i, RexPrefix prefix, int opCodePrefix, byte opCode, Func<ModRM, string> nameResolver)
+        {
+            var modRM = new ModRM(reader.ReadByte());
+            i += 1;
+
+            var mnemonic = nameResolver(modRM);
+
+            var sib = (SIB)null;
+
+            if (modRM.Mod != 0b_11 && modRM.Rm == 0b_100)
+            {
+                sib = new SIB(reader.ReadByte());
+                i += 1;
+            }
+
+            var displacementPresentation = string.Empty;
+
+            if (modRM.Mod == 0b_00 && modRM.Rm == 0b_101)
+            {
+                var displacement = reader.ReadInt32();
+                i += 4;
+                var codes = BitConverter.GetBytes(displacement);
+                displacementPresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2}", codes[0], codes[1], codes[2], codes[3]);
+            }
+            else if (modRM.Mod == 0b_01)
+            {
+                var displacement = reader.ReadByte();
+                i += 1;
+                displacementPresentation = string.Format("{0:x2} ", displacement);
+            }
+            else if (modRM.Mod == 0b_10)
+            {
+                var displacement = reader.ReadInt32();
+                i += 4;
+                var codes = BitConverter.GetBytes(displacement);
+                displacementPresentation = string.Format("{0:x2} {1:x2} {2:x2} {3:x2} ", codes[0], codes[1], codes[2], codes[3]);
+            }
+
+            var immediate = reader.ReadByte();
+            i += 1;
+
+            var offsetPresentation = prefix != null
+                ? string.Format("{0:x8} ", offset)
+                : string.Format("{0:x8} ", offset);
+
+            var prefixPresentation = prefix != null
+                ? string.Format("{0:x2} ", prefix.Code)
+                : string.Empty;
+
+            var sibPresentation = sib != null
+                ? string.Format("{0:x2} ", sib.Value)
+                : string.Empty;
+
+            var opCodePresentation = opCodePrefix == -1
+                ? string.Format("{0:x2}", opCode)
+                : string.Format("{0:x2} {1:x2}", opCodePrefix, opCode);
+
+            Console.WriteLine("{0}{1}{2} {3:x2} {4}{5}{6:x2} {7} 0x{8:x}", offsetPresentation, prefixPresentation, opCodePresentation, modRM.Value, sibPresentation, displacementPresentation, immediate, mnemonic, immediate);
         }
     }
 }

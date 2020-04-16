@@ -80,6 +80,11 @@ namespace Disassembler
             return _reader.ReadUInt32();
         }
 
+        internal int ReadInt32()
+        {
+            return _reader.ReadInt32();
+        }
+
         internal ulong ReadUInt64()
         {
             return _reader.ReadUInt64();

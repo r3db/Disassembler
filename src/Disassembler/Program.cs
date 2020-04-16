@@ -39,7 +39,7 @@ namespace Disassembler
                 //if (present)
                 {
                     br.ToRva(coffOptionalHeader.AddressOfEntryPoint);
-                    IntelInstructionDecoder.Decode(br, IntelInstructionDecoderMode.x64, 100);
+                    IntelInstructionDecoder.Decode(br, IntelInstructionDecoderMode.x64, 1000);
                 }
             }
         }
