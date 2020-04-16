@@ -1,5 +1,5 @@
 # Disassembler
-Disassembles PECOFF executables both for managed and unmanaged code.
+Disassembles PECOFF executables both for managed and unmanaged code, [WIP].
 
 ![image](https://user-images.githubusercontent.com/9978724/78860348-e7d58780-7a29-11ea-9b3a-d35c21d42d62.png)
 
